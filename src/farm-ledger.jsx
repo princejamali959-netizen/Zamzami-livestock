@@ -19,11 +19,6 @@ const T = {
     tabLivestock: "Livestock", tabSettings: "Settings",
     ownerMode: "Owner mode", viewingOnly: "Viewing only", openingLedger: "Opening the ledger…",
     thisMonthIn: "This month · in", thisMonthOut: "This month · out", thisMonthNet: "This month · net", yearNet: "net",
-    setupTitle: "Set up your owner PIN",
-    setupDesc: "Only you should know this. Anyone with your link can view the ledger, but only this PIN unlocks editing.",
-    createPinPh: "Create PIN (4+ digits)", confirmPinPh: "Confirm PIN",
-    pinTooShort: "PIN must be at least 4 digits.", pinMismatch: "PINs don't match.",
-    createLedgerBtn: "Create ledger",
     ownerLoginTitle: "Enter as owner", ownerLoginDesc: "Enter your PIN to add and edit records.",
     pinPh: "PIN", pinWrong: "Wrong PIN. Try again.",
     unlockOwnerBtn: "Unlock owner mode", continueViewerBtn: "Continue as viewer",
@@ -72,11 +67,6 @@ const T = {
     tabLivestock: "المواشي", tabSettings: "الإعدادات",
     ownerMode: "وضع المالك", viewingOnly: "عرض فقط", openingLedger: "جاري فتح السجل…",
     thisMonthIn: "هذا الشهر · وارد", thisMonthOut: "هذا الشهر · صادر", thisMonthNet: "هذا الشهر · الصافي", yearNet: "الصافي",
-    setupTitle: "إعداد رمز المالك السري",
-    setupDesc: "يجب أن تعرف هذا الرمز أنت فقط. يمكن لأي شخص لديه الرابط عرض السجل، لكن هذا الرمز فقط يتيح التعديل.",
-    createPinPh: "أنشئ رمزًا سريًا (٤ أرقام أو أكثر)", confirmPinPh: "أكّد الرمز السري",
-    pinTooShort: "يجب أن يتكون الرمز من ٤ أرقام على الأقل.", pinMismatch: "الرمزان غير متطابقين.",
-    createLedgerBtn: "إنشاء السجل",
     ownerLoginTitle: "الدخول كمالك", ownerLoginDesc: "أدخل رمزك السري لإضافة السجلات وتعديلها.",
     pinPh: "الرمز السري", pinWrong: "رمز خاطئ، حاول مرة أخرى.",
     unlockOwnerBtn: "فتح وضع المالك", continueViewerBtn: "المتابعة كمُشاهد",
@@ -216,16 +206,13 @@ function monthKey(dateStr) { return dateStr.slice(0, 7); }
 
 export default function App() {
   const [loading, setLoading] = useState(true);
-  const [settings, setSettings] = useState({ pin: "", farmName: "Zamzami Livestock", currency: "$" });
+  const [settings, setSettings] = useState({ pin: "2684", farmName: "Zamzami Livestock", currency: "$" });
   const [transactions, setTransactions] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [livestock, setLivestock] = useState([]);
   const [mode, setMode] = useState(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
-  const [setupPin, setSetupPin] = useState("");
-  const [setupPin2, setSetupPin2] = useState("");
-  const [setupErr, setSetupErr] = useState("");
   const [activeTab, setActiveTab] = useState("overview");
   const [selMonth, setSelMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [pinPromptOpen, setPinPromptOpen] = useState(false);
@@ -332,22 +319,12 @@ export default function App() {
   }
 
   if (mode === null) {
-    const needsSetup = !settings.pin;
     return (
       <GateScreen
         lang={lang} setLang={changeLang} t={t} dir={dir}
-        needsSetup={needsSetup} farmName={settings.farmName}
-        setupPin={setupPin} setSetupPin={setSetupPin}
-        setupPin2={setupPin2} setSetupPin2={setSetupPin2}
-        setupErr={setupErr}
+        farmName={settings.farmName}
         pinInput={pinInput} setPinInput={setPinInput}
         pinError={pinError}
-        onCreatePin={() => {
-          if (setupPin.length < 4) { setSetupErr(t("pinTooShort")); return; }
-          if (setupPin !== setupPin2) { setSetupErr(t("pinMismatch")); return; }
-          saveSettings({ ...settings, pin: setupPin });
-          setMode("owner");
-        }}
         onOwnerLogin={() => {
           if (pinInput === settings.pin) { setMode("owner"); setPinInput(""); setPinError(""); }
           else setPinError(t("pinWrong"));
@@ -472,7 +449,7 @@ export default function App() {
   );
 }
 
-function GateScreen({ lang, setLang, t, dir, needsSetup, farmName, setupPin, setSetupPin, setupPin2, setSetupPin2, setupErr, pinInput, setPinInput, pinError, onCreatePin, onOwnerLogin, onViewerLogin }) {
+function GateScreen({ lang, setLang, t, dir, farmName, pinInput, setPinInput, pinError, onOwnerLogin, onViewerLogin }) {
   return (
     <div dir={dir} className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F3EEE1", fontFamily: lang === "ar" ? "'Cairo',sans-serif" : "'Inter',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Inter:wght@400;500;600&family=Cairo:wght@600;700&display=swap');`}</style>
@@ -489,25 +466,12 @@ function GateScreen({ lang, setLang, t, dir, needsSetup, farmName, setupPin, set
           <h1 className="text-3xl font-semibold" style={{ fontFamily: lang === "ar" ? "'Cairo',sans-serif" : "'Zilla Slab',serif", color: "#1C2617" }}>{farmName || "Your Farm"}</h1>
         </div>
         <div className="rounded-2xl p-6" style={{ background: "#FAF6EC", border: "1px solid #E4DBC6" }}>
-          {needsSetup ? (
-            <>
-              <h2 className="font-semibold mb-1" style={{ color: "#24301F" }}>{t("setupTitle")}</h2>
-              <p className="text-sm text-[#8A7F6B] mb-4">{t("setupDesc")}</p>
-              <input type="password" inputMode="numeric" placeholder={t("createPinPh")} value={setupPin} onChange={e => setSetupPin(e.target.value)} className="w-full mb-2 px-3 py-2 rounded-lg border border-[#E4DBC6] bg-white outline-none focus:border-[#4F6B3D]" />
-              <input type="password" inputMode="numeric" placeholder={t("confirmPinPh")} value={setupPin2} onChange={e => setSetupPin2(e.target.value)} className="w-full mb-2 px-3 py-2 rounded-lg border border-[#E4DBC6] bg-white outline-none focus:border-[#4F6B3D]" />
-              {setupErr && <div className="text-sm text-[#A63D2F] mb-2">{setupErr}</div>}
-              <button onClick={onCreatePin} className="w-full py-2.5 rounded-lg bg-[#4F6B3D] text-white font-medium hover:bg-[#3f5731]">{t("createLedgerBtn")}</button>
-            </>
-          ) : (
-            <>
-              <h2 className="font-semibold mb-1" style={{ color: "#24301F" }}>{t("ownerLoginTitle")}</h2>
-              <p className="text-sm text-[#8A7F6B] mb-4">{t("ownerLoginDesc")}</p>
-              <input type="password" inputMode="numeric" placeholder={t("pinPh")} value={pinInput} onChange={e => setPinInput(e.target.value)} onKeyDown={e => e.key === "Enter" && onOwnerLogin()} className="w-full mb-2 px-3 py-2 rounded-lg border border-[#E4DBC6] bg-white outline-none focus:border-[#4F6B3D]" />
-              {pinError && <div className="text-sm text-[#A63D2F] mb-2">{pinError}</div>}
-              <button onClick={onOwnerLogin} className="w-full py-2.5 rounded-lg bg-[#4F6B3D] text-white font-medium hover:bg-[#3f5731] mb-2">{t("unlockOwnerBtn")}</button>
-              <button onClick={onViewerLogin} className="w-full py-2.5 rounded-lg bg-[#EDE6D2] text-[#24301F] font-medium hover:bg-[#E4DBC6]">{t("continueViewerBtn")}</button>
-            </>
-          )}
+          <h2 className="font-semibold mb-1" style={{ color: "#24301F" }}>{t("ownerLoginTitle")}</h2>
+          <p className="text-sm text-[#8A7F6B] mb-4">{t("ownerLoginDesc")}</p>
+          <input type="password" inputMode="numeric" placeholder={t("pinPh")} value={pinInput} onChange={e => setPinInput(e.target.value)} onKeyDown={e => e.key === "Enter" && onOwnerLogin()} className="w-full mb-2 px-3 py-2 rounded-lg border border-[#E4DBC6] bg-white outline-none focus:border-[#4F6B3D]" />
+          {pinError && <div className="text-sm text-[#A63D2F] mb-2">{pinError}</div>}
+          <button onClick={onOwnerLogin} className="w-full py-2.5 rounded-lg bg-[#4F6B3D] text-white font-medium hover:bg-[#3f5731] mb-2">{t("unlockOwnerBtn")}</button>
+          <button onClick={onViewerLogin} className="w-full py-2.5 rounded-lg bg-[#EDE6D2] text-[#24301F] font-medium hover:bg-[#E4DBC6]">{t("continueViewerBtn")}</button>
         </div>
         <Footer t={t} farmName={farmName} />
       </div>
