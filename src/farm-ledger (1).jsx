@@ -27,6 +27,8 @@ const T = {
     ownerLoginTitle: "Enter as owner", ownerLoginDesc: "Enter your PIN to add and edit records.",
     pinPh: "PIN", pinWrong: "Wrong PIN. Try again.",
     unlockOwnerBtn: "Unlock owner mode", continueViewerBtn: "Continue as viewer",
+    viewerLoginTitle: "Viewer access", viewerLoginDesc: "Enter the viewing passcode to see the ledger.",
+    viewerPinPh: "Viewer passcode",
     ownerPinModalTitle: "Owner PIN", unlockBtn: "Unlock",
     chart12moTitle: "Income vs expenses — last 12 months", netTrendTitle: "Net trend",
     whereMoneyWentTitle: "Where the money went", noExpensesFor: "No expenses logged for {month} yet.",
@@ -80,6 +82,8 @@ const T = {
     ownerLoginTitle: "الدخول كمالك", ownerLoginDesc: "أدخل رمزك السري لإضافة السجلات وتعديلها.",
     pinPh: "الرمز السري", pinWrong: "رمز خاطئ، حاول مرة أخرى.",
     unlockOwnerBtn: "فتح وضع المالك", continueViewerBtn: "المتابعة كمُشاهد",
+    viewerLoginTitle: "دخول المُشاهد", viewerLoginDesc: "أدخل رمز المشاهدة لعرض السجل.",
+    viewerPinPh: "رمز المشاهدة",
     ownerPinModalTitle: "رمز المالك السري", unlockBtn: "فتح",
     chart12moTitle: "الدخل مقابل المصروفات — آخر ١٢ شهرًا", netTrendTitle: "اتجاه الصافي",
     whereMoneyWentTitle: "أين ذهبت الأموال", noExpensesFor: "لا توجد مصروفات مسجّلة لشهر {month} بعد.",
@@ -154,10 +158,6 @@ const ALL_CATS = [...EXPENSE_CATS, ...INCOME_CATS];
 const CURRENCIES = ["$", "€", "£", "﷼", "د.إ", "ر.س", "₹", "₨", "R", "₦", "kr"];
 
 function Monogram({ name, size = 40 }) {
-  // A sheep-and-"Z" mark: the letter Z is drawn as a bold stroke whose top-right
-  // corner becomes a sheep's head (ears + face), whose diagonal carries three
-  // fleece tufts, and whose base sprouts four little legs — a single motif that
-  // reads as both "Z" (for the farm name) and "sheep" (for the flock).
   return (
     <div
       className="flex items-center justify-center rounded-xl shrink-0 relative overflow-hidden"
@@ -168,14 +168,12 @@ function Monogram({ name, size = 40 }) {
       title={name}
     >
       <svg viewBox="0 0 100 100" width="72%" height="72%" fill="none">
-        {/* legs, standing on the base of the Z */}
         <g stroke="#F3EEE1" strokeWidth="6" strokeLinecap="round" opacity="0.9">
           <line x1="34" y1="76" x2="34" y2="88" />
           <line x1="46" y1="76" x2="46" y2="88" />
           <line x1="62" y1="76" x2="62" y2="88" />
           <line x1="74" y1="76" x2="74" y2="88" />
         </g>
-        {/* the Z stroke: top bar, diagonal, bottom bar */}
         <path
           d="M23,26 L77,26 L23,76 L77,76"
           stroke="#F3EEE1"
@@ -183,11 +181,9 @@ function Monogram({ name, size = 40 }) {
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-        {/* fleece tufts along the diagonal */}
         <circle cx="52" cy="46" r="7.5" fill="#F3EEE1" />
         <circle cx="42" cy="56" r="6" fill="#F3EEE1" />
         <circle cx="60" cy="38" r="5.5" fill="#F3EEE1" />
-        {/* sheep head, riding the top-right corner of the Z */}
         <g>
           <ellipse cx="79" cy="18" rx="10.5" ry="9" fill="#F3EEE1" />
           <ellipse cx="70.5" cy="10.5" rx="4.2" ry="5.2" fill="#F3EEE1" transform="rotate(-25 70.5 10.5)" />
@@ -210,6 +206,8 @@ function Footer({ t, farmName }) {
   );
 }
 
+const VIEWER_PIN = "2486";
+
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 function catInfo(key) { return ALL_CATS.find(c => c.key === key) || EXPENSE_CATS[EXPENSE_CATS.length - 1]; }
 function monthKey(dateStr) { return dateStr.slice(0, 7); }
@@ -223,6 +221,8 @@ export default function App() {
   const [mode, setMode] = useState(null);
   const [pinInput, setPinInput] = useState("");
   const [pinError, setPinError] = useState("");
+  const [viewerPinInput, setViewerPinInput] = useState("");
+  const [viewerPinError, setViewerPinError] = useState("");
   const [setupPin, setSetupPin] = useState("");
   const [setupPin2, setSetupPin2] = useState("");
   const [setupErr, setSetupErr] = useState("");
@@ -345,6 +345,8 @@ export default function App() {
         setupErr={setupErr}
         pinInput={pinInput} setPinInput={setPinInput}
         pinError={pinError}
+        viewerPinInput={viewerPinInput} setViewerPinInput={setViewerPinInput}
+        viewerPinError={viewerPinError}
         onCreatePin={() => {
           if (setupPin.length < 4) { setSetupErr(t("pinTooShort")); return; }
           if (setupPin !== setupPin2) { setSetupErr(t("pinMismatch")); return; }
@@ -355,7 +357,10 @@ export default function App() {
           if (pinInput === settings.pin) { setMode("owner"); setPinInput(""); setPinError(""); }
           else setPinError(t("pinWrong"));
         }}
-        onViewerLogin={() => setMode("viewer")}
+        onViewerLogin={() => {
+          if (viewerPinInput === VIEWER_PIN) { setMode("viewer"); setViewerPinInput(""); setViewerPinError(""); }
+          else setViewerPinError(t("pinWrong"));
+        }}
       />
     );
   }
@@ -475,7 +480,7 @@ export default function App() {
   );
 }
 
-function GateScreen({ lang, setLang, t, dir, needsSetup, farmName, setupPin, setSetupPin, setupPin2, setSetupPin2, setupErr, pinInput, setPinInput, pinError, onCreatePin, onOwnerLogin, onViewerLogin }) {
+function GateScreen({ lang, setLang, t, dir, needsSetup, farmName, setupPin, setSetupPin, setupPin2, setSetupPin2, setupErr, pinInput, setPinInput, pinError, viewerPinInput, setViewerPinInput, viewerPinError, onCreatePin, onOwnerLogin, onViewerLogin }) {
   return (
     <div dir={dir} className="min-h-screen flex items-center justify-center px-4" style={{ background: "#F3EEE1", fontFamily: lang === "ar" ? "'Cairo',sans-serif" : "'Inter',sans-serif" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@600;700&family=Inter:wght@400;500;600&family=Cairo:wght@600;700&display=swap');`}</style>
@@ -508,6 +513,11 @@ function GateScreen({ lang, setLang, t, dir, needsSetup, farmName, setupPin, set
               <input type="password" inputMode="numeric" placeholder={t("pinPh")} value={pinInput} onChange={e => setPinInput(e.target.value)} onKeyDown={e => e.key === "Enter" && onOwnerLogin()} className="w-full mb-2 px-3 py-2 rounded-lg border border-[#E4DBC6] bg-white outline-none focus:border-[#4F6B3D]" />
               {pinError && <div className="text-sm text-[#A63D2F] mb-2">{pinError}</div>}
               <button onClick={onOwnerLogin} className="w-full py-2.5 rounded-lg bg-[#4F6B3D] text-white font-medium hover:bg-[#3f5731] mb-2">{t("unlockOwnerBtn")}</button>
+              <div className="my-4 border-t" style={{ borderColor: "#E4DBC6" }} />
+              <h3 className="font-semibold mb-1 text-sm" style={{ color: "#24301F" }}>{t("viewerLoginTitle")}</h3>
+              <p className="text-sm text-[#8A7F6B] mb-3">{t("viewerLoginDesc")}</p>
+              <input type="password" inputMode="numeric" placeholder={t("viewerPinPh")} value={viewerPinInput} onChange={e => setViewerPinInput(e.target.value)} onKeyDown={e => e.key === "Enter" && onViewerLogin()} className="w-full mb-2 px-3 py-2 rounded-lg border border-[#E4DBC6] bg-white outline-none focus:border-[#4F6B3D]" />
+              {viewerPinError && <div className="text-sm text-[#A63D2F] mb-2">{viewerPinError}</div>}
               <button onClick={onViewerLogin} className="w-full py-2.5 rounded-lg bg-[#EDE6D2] text-[#24301F] font-medium hover:bg-[#E4DBC6]">{t("continueViewerBtn")}</button>
             </>
           )}
