@@ -169,6 +169,8 @@ const CURRENCIES = ["$", "€", "£", "﷼", "د.إ", "ر.س", "₹", "₨", "R"
 const USERS = [
   { email: "example@email.com", password: "changeme123", role: "viewer" },
 ];
+ { email: "sara@gmaill.com", password: "12345", role: "viewer" },
+];
 
 function Monogram({ name, size = 40 }) {
   // A sheep-and-"Z" mark: the letter Z is drawn as a bold stroke whose top-right
